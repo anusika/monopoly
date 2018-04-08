@@ -3,22 +3,33 @@ import numpy as np
 import random as rd
 import matplotlib.pyplot as mpl
 import math
-from itertools import groupby
-from operator import attrgetter
+
 
 
 class Player(object):
-    def __init__(self, number, position, locations, risky, money= 1500, jail = 0):
-        self.number = number
+    def __init__(self, number, risky, locations, wins = 0, position = 0, money= 1500, jail = False, jail_time = 0, turn = False):
         self.position = position
+        self.number = number
         self.money = money
         self.locations = locations
-        self.risky = risky
+        self.risky = risky/100
         self.jail = jail
+        self.jail_time = jail_time
+        self.turn = turn
+        self.wins = 0
+    def want(self, location):
+        testing = rd.random()
+        if player.money < location.buy:
+            return False
+        elif testing <= self.risky:
+            return True
+        else:
+            return False
+    
 
 class Property(object):
     properties = []
-    def __init__(self, name, location, colour = "Null", buy = "null", rent="null", hits = 0):
+    def __init__(self, name, location, colour = "Null", buy = "null", rent="null", hits = 0, owned = False):
         Property.properties.append(self)
         self.location = location
         self.colour = colour
@@ -26,6 +37,7 @@ class Property(object):
         self.buy = buy
         self.rent = rent
         self.hits = hits
+        self.owned = False
         
     def __str__(self):
         return "Name: {} || Location: {} || Colour: {} || Buy: {} || Rent: {}".format(self.name,
@@ -77,13 +89,6 @@ park = Property('Park Place', 37, 'Blue', 350, 35)
 tax = Property('Super Tax', 38, 'Tax')
 boardwalk = Property('BoardWalk', 39, 'Blue', 400, 50)
 
-chance_options = [0, 10, 24, 5, 'back', 'thouse', 'tstreet', 'tschool', 'tcharge', 'tspeeding',
-                  'rbuilding', 'rcrossword', 'rbank']
-chest_options = [0, 19, 10, 'thospital', 'tdoctor', 'tinsurance', 'rerror',
-                 'rannuity', 'rinherit', 'rstock', 'rinterest', 'rincome',
-               'rsecond', 'birthday',]
-
-
 
 def RollDice(player,jail):
     doubles = 0
@@ -95,13 +100,13 @@ def RollDice(player,jail):
         if dice1 == dice2:
             doubles += 1
             total += roll
-            if player.jail == 1 and jail:
+            if player.jail and jail:
                 #print(doubles)
                 #print("out of jail!")
                 player.jail == 0
                 return [total, player.jail]
         else:
-            if player.jail == 1 and jail:
+            if player.jail and jail:
                 #print('still in jail')
                 return "jail"
             else:
@@ -136,20 +141,21 @@ def simple_simulation(numgames, numturns, jail):
         rd.shuffle(current_chest)
 
         chance_options = [0, 24, 11, 10, 5, 39, 'back', 'ulility', 'railroad', 'n',
-                          'n', 'n', 'n', 'n', 'n', 'n']
+                          'n', 'n', 'n', 'n', 'n', 'n', 'n']
         current_chance = [i for i in chance_options]
         rd.shuffle(current_chance)
 
         turns = 0
         jail_time = 0
+
         
         while turns < numturns:
             
             roll = RollDice(player, jail)
 
-            if player.jail == 1 and jail_time == 3 and jail:
+            if player.jail and jail_time == 3 and jail:
                 #print('must leave jail')
-                player.jail = 0
+                player.jail = False
                 jail_time = 0
                 turns -= 1
                 continue
@@ -157,7 +163,7 @@ def simple_simulation(numgames, numturns, jail):
             elif isinstance(roll, list):
                 #print('math to get out of jail')
                 #print(roll[0])
-                player.jail = 0
+                player.jail = False
                 roll = roll[0]
                 jail_time = 0
                 turns -= 1
@@ -218,7 +224,7 @@ def simple_simulation(numgames, numturns, jail):
 
             
             if player.position == 10 and jail:
-                player.jail = 1
+                player.jail = True
                 jail_time += 1
                 #print("player is in jail")
 
@@ -233,10 +239,362 @@ def simple_simulation(numgames, numturns, jail):
 
 def calc_time(games, numturns):
     simulation = simple_simulation(games, numturns, jail=True)
-    names =[location.name for location in simulation]
-    numbers = [location.location for location in simulation]
     turns = [location.hits for location in simulation]
     turns_percentage= [(turn/(games*numturns))*100 for turn in turns]
+    fig, ax = mpl.subplots()
+    rects = ax.bar(numbers, turns_percentage, color = 'y')
+    ax.set_ylabel('Percentage of Turns Spent')
+    ax.set_title('Percentage of Turns Spent at Each Space ({} Games at {} Turns/Game)'.format(games, numturns-1))
+    ax.set_xticks(numbers)
+    ax.set_xticklabels(names, rotation = 90)
+    ax.set_xlabel('Spaces on Monopoly Board', labelpad=50)
+    rects = ax.patches
+    label_bars(rects)
+    mpl.tight_layout()
+    return turns_percentage
+
+
+def calc_hit(games, numturns):
+    simulation = simple_simulation(games, numturns, jail=False)
+    hits = [location.hits for location in simulation]
+    hits_percentage= [(hit/(games*numturns))*100 for hit in hits]
+    fig, ax = mpl.subplots()
+    rects = ax.bar(numbers, hits_percentage, color = 'r')
+    ax.set_ylabel('Percentage Chance of Hitting Space')
+    ax.set_title('Percentage Chance of Hitting Each Space ({} Games at {} Turns/Game)'.format(games, numturns-1))
+    ax.set_xticks(numbers)
+    ax.set_xticklabels(names, rotation = 90)
+    ax.set_xlabel('Spaces on Monopoly Board', labelpad=50)
+    rects = ax.patches
+    label_bars(rects)
+    mpl.tight_layout()
+    return hits_percentage
+
+def label_bars(bars):
+    for rect in bars:
+        y_value = rect.get_height()
+        x_value = rect.get_x() + rect.get_width() / 2
+        space = 5
+        va = 'bottom'
+        label = "{:.2f}".format(y_value)
+        mpl.annotate(label, (x_value, y_value), xytext=(0, space), textcoords="offset points", ha='center', va=va)
+        
+def compare_hits_time(games, numturns):
+    hits = calc_hit(games, numturns)
+    turns = calc_time(games, numturns)
+    fig, ax = mpl.subplots()
+    width= 0.35
+    rects = ax.bar(numbers, hits, width, color = 'r')
+    rects2 = ax.bar(numbers + width, turns, width, color = 'y')
+    ax.set_ylabel('Percentage')
+    ax.set_title('Comparison Between Percentage of Time Spent and Percentage Chance of Hitting Each Square ({} Games at {} Turns/Game)'.format(games, numturns-1))
+    ax.set_xticks(numbers + width / 2)
+    ax.set_xticklabels(names, rotation = 90)
+    ax.set_xlabel('Spaces on Monopoly Board', labelpad=50)
+    ax.legend((rects[0], rects2[0]), ('Chance of Hit Percentage', 'Turns Spent Percentage'))
+    mpl.tight_layout()
+    
+names = [location.name for location in Property.properties]
+numbers = np.arange(40)
+compare_hits_time(100,100)                 
+
+def complicated_simulation(games, numturns, players):   
+    properties_list = Property.properties
+    railroads = []
+    utilities = []
+    for place in properties_list:
+        if place.colour == 'Station':
+            railroads.append(place)
+        elif place.colour == 'Utility':
+            utilities.append(place)
+        
+    railroads_location = [railroad.location for railroad in railroads]
+    utilities_location = [utility.location for utility in utilities]
+
+    games_completed = 0
+
+    opponents = len(players) -1
+
+    while games_completed < games:
+        
+
+        chest_options = [0, 10, 'rerror', 'tdoctor', 'ropera','rfund', 'thospital',
+                             'rinsurance',  'rincome', 'rbirthday','tschool', 'rconsult',
+                             'rinherit', 'rsecond',  'n', 'n', 'n']
+        current_chest = [i for i in chest_options]
+        rd.shuffle(current_chest)
+
+        chance_options = [0, 24, 11, 10, 5, 39, 'back', 'ulility', 'railroad', 'rbank',
+                          'tpoor', 'tplayer', 'rloans', 'rcrossword', 'n', 'n', 'n']
+        current_chance = [i for i in chance_options]
+        rd.shuffle(current_chance)
+
+        turns = 0
+        
+
+
+        while turns < numturns:
+            
+            for player in players:
+                player.turn = True
+                #print('Player', player.number)
+                #print('Player', player.number, 'owns', len(player.locations))
+                #for location in player.locations:
+                    #print(location.name)
+                roll = RollDice(player, jail = True)
+
+                if player.jail and player.jail_time == 3:
+                    #print('must leave jail')
+                    player.jail = False
+                    player.jail_time = 0
+                    turns -= 1
+                    player.money -= 50
+                    continue
+                    
+                elif isinstance(roll, list):
+                    #print('math to get out of jail')
+                    #print(roll[0])
+                    player.jail = False
+                    roll = roll[0]
+                    player.jail_time = 0
+                    turns -= 1
+                    continue
+                 
+                if isinstance(roll, str):
+                    #print('going to jail')
+                    player.position = 10
+                    
+                else:
+                    player.position = (player.position + roll)%40
+
+                    if player.position == 30:
+                        #print('going to jail')
+                        player.position = 10
+                        
+
+                    elif player.position in [2, 17, 33]:
+                        chest_played = current_chest.pop(0)
+                        #print('chest played:', chest_played)
+                        if len(current_chest)==0:
+                            current_chest = [i for i in chest_options]
+                            rd.shuffle(current_chest)
+                        
+
+                        if isinstance(chest_played, int):
+                            player.position = chest_played
+
+                        elif chest_played == 'rerror':
+                            player.money += 200
+
+                        elif chest_played == 'tdoctor':
+                            player.money -= 50
+
+                        elif chest_played == 'ropera':
+                            player.money += 50
+
+                        elif chest_played == 'rfund' or chest_played == 'rinherit' or chest_played == 'rinsurance':
+                            player.money += 100
+
+                        elif chest_played == 'rincome':
+                            player.money += 20
+
+                        elif chest_played == 'rbirthday':
+                            opponents_left = 0
+                            while opponents_left < opponents:
+                                #print('brithday')
+                                player.money += 10
+                                #print('player', player.number, 'won money')
+                                opponents_left += 1
+                            for player in players:
+                                if player.turn == False:
+                                    player.money -= 10
+                                    #print('player', player.number, 'lost money')
+                                
+
+                        elif chest_played == 'thospital':
+                            player.money -= 100
+
+                        elif chest_played == 'tschool':
+                            player.money -= 150
+
+                        elif chest_played == 'rconsult':
+                            player.money += 25
+
+                        elif chest_played == 'rsecond':
+                            player.money += 10
+
+                        else:
+                            pass
+                        
+                    elif player.position in [7, 22, 36]:
+                        chance_played = current_chance.pop(0)
+                        #print('chance played:', chance_played)
+                        if len(current_chance)==0:
+                            current_chance = [i for i in chance_options]
+                            rd.shuffle(current_chance)
+                        
+
+                        if isinstance(chance_played, int):
+                            player.position = chance_played
+                            if player.position in [24, 11, 5, 39]:
+                                player.money += 200
+                            
+                        elif chance_played == 'back':
+                            #print('moving back')
+                            player.position = player.position-3 #don't need to %40 bc there's no chance spot on the board that's 3 away from go
+
+                        elif chance_played == 'ultility':
+                            #print('moving to utility')
+                            while player.position not in utilities_location:
+                                player.position = (player.position + 1)%40
+                                
+
+                        elif chance_played == 'railroad':
+                            #print('moving to raildroad')
+                            while player.position not in railroads_location:
+                                player.position = (player.position + 1)%40
+                                
+                        elif chance_played == 'rbank':
+                            player.money += 50
+                                
+                        elif chance_played == 'tpoor':
+                            player.money -= 15
+
+                        elif chance_played == 'tplayer':
+                            opponents_left = 0
+                            while opponents_left < opponents:
+                                #print('loans')
+                                player.money -= 50
+                                opponents_left += 1
+                                #print('player', player.number, 'lost money')
+                            for player in players:
+                                if player.turn == False:
+                                    player.money += 10
+                                    #print('player', player.number, 'got money')
+
+                        elif chance_played == 'rloans':
+                            player.money += 150
+
+                        elif chance_played == 'rcrossword':
+                            player.money += 100
+                            
+                        else:
+                            pass
+                current = properties_list[player.position]
+                current.hits += 1
+                #print("Turn:", turns, "Name:", properties_list[player.position].name, "times hit:", current.hits)
+                
+                if current.owned == False and current.buy != 'null':
+            
+                    if player.want(properties_list[player.position]):
+                        #print('want')
+                        #print('money spent:' ,properties_list[player.position].buy)
+                        player.money -= current.buy
+                        current.owned = True
+                        #print(properties_list[player.position].owned)
+                        player.locations.append(current)
+                        #print('Player:', player.number, 'owns', len(player.locations))
+
+                if properties_list[player.position].owned == True and properties_list[player.position] not in player.locations:
+                    current = properties_list[player.position]
+                    
+                    if current.colour == "Utility":
+                        #print('paying rent for utility')
+                        #print('------------------------------------------------------------------------------------------------------------------------------------------------------')
+                        owned_utilities = 0
+                        for player in players:
+                            if current in player.locations:
+                                hello = player
+                                for location in hello.locations:
+                                    if location in utilities:
+                                        owned_utilities +=1
+                        if owned_utilities == 1:
+                            player.money -= (4*roll)
+                            hello.money += (4*roll)
+                        elif owned_utilities == 2:
+                            player.money -= (10*roll)
+                            hello.money += (10*roll)
+                        else:
+                            print("how did we get here", owned_utilities)
+                        #print('owned utility', owned_utilities)
+                        #print('player', hello.number, 'got payed')
+                            
+                    elif current.colour == "Station":
+                        #print('paying rent for railroads')
+                        #print('------------------------------------------------------------------------------------------------------------------------------------------------------')
+                        owned_stations = 0
+                        for player in players:
+                            if current in player.locations:
+                                hello = player
+                                for location in hello.locations:
+                                    if location in railroads:
+                                        owned_stations +=1
+                        if owned_stations == 1:
+                            player.money -= 25
+                            hello.money +=25
+                        elif owned_stations == 2:
+                            player.money -= 50
+                            hello.money +=50
+                        elif owned_stations == 3:
+                            player.money -= 100
+                            hello.money +=100
+                        elif owned_stations == 4:
+                            player.money -= 200
+                            hello.money +=200
+                        else:
+                            print("how did we get here", owned_stations)
+                        #print('owned stations', owned_stations)
+                        #print('player', hello.number, 'got payed')
+                                  
+                    else:      
+                        player.money -= current.rent
+                        #print('paying rent Player:', player.number)
+                        for player in players:
+                            if current in player.locations:
+                                player.money += current.rent
+                                #print("I got payed Player:", player.number)
+                        
+
+
+                            
+                if player.position == 0:
+                    player.money += 200
+
+                
+                if player.position == 10:
+                    player.jail = True
+                    player.jail_time += 1
+                    #print("player is in jail")
+                    
+                player.turn = False
+                #print("player:", player.number, "money left:", player.money)   
+            turns += 1
+        money = [player.money for player in players]
+        for player in players:
+            if player.money == max(money):
+                player.wins += 1
+                
+        games_completed += 1
+        if games_completed%100 == 0:
+            print("game",games_completed, "finished")
+    for player in players:
+        print('player:', player.number, 'wins', player.wins)
+    return properties_list
+
+player = Player(1, 80, [])
+player2 = Player(2, 100, [])
+player3 = Player(3, 50, [])
+player4 = Player(4, 10, [])
+players = [player, player2, player3, player4]
+#print(players)
+#complicated_simulation(1, 100, players)
+
+def calc_time_complicated(games, numturns):
+    numbers = np.arange(40)
+    names = [location.name for location in Property.properties]
+    simulation = complicated_simulation(games, numturns, players)
+    turns = [location.hits for location in simulation]
+    turns_percentage= [(turn/(games*numturns*len(players)))*100 for turn in turns]
     fig, ax = mpl.subplots()
     rects = ax.bar(numbers, turns_percentage, color = 'y')
     ax.set_ylabel('Percentage of Turns Spent')
@@ -250,78 +608,7 @@ def calc_time(games, numturns):
     return turns_percentage
 
 
-def calc_hit(games, numturns):
-    simulation = simple_simulation(games, numturns, jail=False)
-    locations =[location.name for location in simulation]
-    numbers = [location.location for location in simulation]
-    hits = [location.hits for location in simulation]
-    hits_percentage= [(hit/(games*numturns))*100 for hit in hits]
-    fig, ax = mpl.subplots()
-    rects = ax.bar(numbers, hits_percentage, color = 'r')
-    ax.set_ylabel('Percentage Chance of Hitting Space')
-    ax.set_title('Percentage Chance of Hitting Each Space ({} Games at {} Turns/Game)'.format(games, numturns))
-    ax.set_xticks(numbers)
-    ax.set_xticklabels(locations, rotation = 90)
-    ax.set_xlabel('Spaces on Monopoly Board', labelpad=50)
-    rects = ax.patches
-    label_bars(rects)
-    mpl.tight_layout()
-    return hits_percentage
+#calc_time_complicated(200, 30)
 
-def label_bars(bars):
-    for rect in bars:
-        y_value = rect.get_height()
-        x_value = rect.get_x() + rect.get_width() / 2
-        space = 5
-        va = 'bottom'
-        if y_value < 0:
-            space *= -1
-            va = 'top'
-        label = "{:.2f}".format(y_value)
-        mpl.annotate(label, (x_value, y_value), xytext=(0, space), textcoords="offset points", ha='center', va=va)
-        
-##
-##def clac_hit_colors(simulation, games=1, numturns=1):
-##    seen = set()
-##    colours = [obj.colour for obj in simulation if obj.colour not in seen and not seen.add(obj.colour)]
-##    answer = []
-##    for colour in colours:
-##        newlist = []
-##        for thing in simulation:
-##            if thing.colour == colour:
-##                newlist.append(thing)
-##        answer.append(newlist)
-##    hits = [location.hits for location in simulation]    
-##    hits_percentage= [(hit/(games*numturns))*100 for hit in hits]
-##    
-
-def compare_hits_time(games, numturns):
-    hits = calc_hit(games, numturns)
-    turns = calc_time(games, numturns)
-    locations = [location.name for location in Property.properties]
-    fig, ax = mpl.subplots()
-    numbers = np.arange(40)
-    width= 0.35
-    rects = ax.bar(numbers, hits, width, color = 'r')
-    rects2 = ax.bar(numbers + width, turns, width, color = 'y')
-    ax.set_ylabel('Percentage')
-    ax.set_title('Comparison Between Percentage of Time Spent and Percentage Chance of Hitting Each Square ({} Games at {} Turns/Game)'.format(games, numturns))
-    ax.set_xticks(numbers + width / 2)
-    ax.set_xticklabels(locations, rotation = 90)
-    ax.set_xlabel('Spaces on Monopoly Board', labelpad=50)
-    ax.legend((rects[0], rects2[0]), ('Hits', 'Turns'))
-    mpl.tight_layout()
-
-compare_hits_time(100,100)                 
-
-
-
-
-
-mpl.show()    
-
-
-        
-
-    
+mpl.show()                
 
