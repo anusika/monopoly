@@ -143,17 +143,17 @@ def simple_simulation(numgames, numturns, jail):
         rd.shuffle(current_chance)
 
         turns = 0
-        jail_time = 0
+
 
         
         while turns < numturns:
             
             roll = RollDice(player, jail)
 
-            if player.jail and jail_time == 3 and jail:
+            if player.jail and player.jail_time == 3 and jail:
                 #print('must leave jail')
                 player.jail = False
-                jail_time = 0
+                player.jail_time = 0
                 turns -= 1
                 player.turns -=1
                 
@@ -164,18 +164,18 @@ def simple_simulation(numgames, numturns, jail):
                 #print(roll[0])
                 player.jail = False
                 roll = roll[0]
-                jail_time = 0
+                player.jail_time = 0
                 turns -= 1
                 player.turns -=1
                 
                 continue
              
-            if isinstance(roll, str):
+            elif isinstance(roll, str):
                 #print('going to jail')
                 player.position = 10
                 if jail:
                     player.jail = True
-                    jail_time += 1
+                    player.jail_time += 1
                     #print('player sent to jail')
                 
             else:
@@ -186,7 +186,7 @@ def simple_simulation(numgames, numturns, jail):
                     player.position = 10
                     if jail:
                         player.jail = True
-                        jail_time += 1
+                        player.jail_time += 1
                         #print('player sent to jail')
         
 
@@ -198,10 +198,10 @@ def simple_simulation(numgames, numturns, jail):
                     #print(chest_played)
 
                     if chest_played == 10:
-                        player.postion = 10
+                        player.position = 10
                         if jail:
                             player.jail = True
-                            jail_time += 1
+                            player.jail_time += 1
 
 
                     elif isinstance(chest_played, int):
@@ -218,7 +218,7 @@ def simple_simulation(numgames, numturns, jail):
                         player.postion = 10
                         if jail:
                             player.jail = True
-                            jail_time += 1
+                            player.jail_time += 1
                             #print('player sent to jail')
 
                     if isinstance(chance_played, int):
@@ -228,7 +228,7 @@ def simple_simulation(numgames, numturns, jail):
                         #print('moving back')
                         player.position = player.position-3 #don't need to %40 bc there's no chance spot on the board that's 3 away from go
 
-                    elif chance_played == 'ultility':
+                    elif chance_played == 'utility':
                         #print('moving to utility')
                         while player.position not in utilities_location:
                             player.position = (player.position + 1)%40
@@ -262,7 +262,7 @@ def simple_simulation(numgames, numturns, jail):
             print("game",games_completed, "finished")
     return properties_list
 
-#simple_simulation(1, 20, True)
+#simple_simulation(1, 30, True)
 
 def calc_time(games, numturns):
     simulation = simple_simulation(games, numturns, jail=True)
@@ -323,7 +323,7 @@ def compare_hits_time(games, numturns):
     
 names = [location.name for location in Property.properties]
 numbers = np.arange(40)
-#compare_hits_time(100,100)                 
+compare_hits_time(1000,100)                 
 
 def complicated_simulation(games, numturns, players):   
     properties_list = Property.properties
@@ -339,8 +339,6 @@ def complicated_simulation(games, numturns, players):
     utilities_location = [utility.location for utility in utilities]
 
     games_completed = 0
-
-    opponents = len(players) -1
 
     while games_completed < games:
         
@@ -380,10 +378,10 @@ def complicated_simulation(games, numturns, players):
                     player.jail = False
                     player.jail_time = 0
                     player.money -= 50
-                    player.turns += 1
+                    #player.turns += 1
                     player.monies.append(player.money)
                     properties_list[10].hits += 1
-                    continue
+                    #continue
 
                     
                 elif isinstance(roll, list):
@@ -393,10 +391,10 @@ def complicated_simulation(games, numturns, players):
                     #roll = roll[0]
                     player.jail_time = 0
                     #print('turns', player.turns)
-                    player.turns += 1
+                    #player.turns += 1
                     player.monies.append(player.money)
                     properties_list[10].hits += 1
-                    continue
+                    #continue
 
                 elif isinstance(roll, str):
                     #print('going to jail')
@@ -605,10 +603,10 @@ def complicated_simulation(games, numturns, players):
                 player.turns += 1
                 #print("player:", player.number, "money left:", player.money)
                 
-                #if player.turns-1 != turns:
-                    #print('error')
+                if player.turns-1 != turns:
+                    print('error')
                 
-                #print("player", player.number, "turns", player.turns)
+                print("player", player.number, "turns", player.turns)
 
                 
             turns += 1
@@ -659,7 +657,7 @@ player3 = Player(3, 30, [], [])
 player4 = Player(4, 20, [], [])
 players = [player, player2, player3, player4]
                        
-#sample = complicated_simulation(1, 30, players)
+sample = complicated_simulation(1, 30, players)
 #calc_time_complicated(100, 100)
 #for player in sample[1]:
     #print(player.monies)

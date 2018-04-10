@@ -4,8 +4,8 @@ import matplotlib.pyplot as mpl #used to generate graphs from data
 
 #set up Player class and various attributes
 class Player(object):
-    def __init__(self, number, risky, locations, monies, wins = 0, position = 0, money = 1500,
-                 jail = False, jail_time = 0, turn = False, turns = 0):
+    def __init__(self, number, risky, locations, monies, completed, wins = 0, position = 0, money = 1500,
+                 jail = False, jail_time = 0, turn = False, turns = 0 ):
         self.number = number #for complex simulation it is easier to undestand who's turn it is by having player numbers
         self.position = position #track where player is on the board, initally set to 0 which is Go
         self.money = money #for complex simulation, track how much money the player currently has
@@ -18,6 +18,7 @@ class Player(object):
         self.wins = wins #for complex simulation, tracks how many games player has won
         self.monies = monies #for complex simulation, will be a list of lists, each list is one game's worth of tracking player's amount of money
         self.turns = turns #for complex simulation and debugging, tracks how many turns player has taken
+        self.completed = completed
     def want(self, location): #for complex simulation, see if player wants to buy this location
         testing = rd.random() #some random number between 0 and 1
         if player.money < location.buy: #if the player has less money than the price of the location i.e they cannot afford the location
@@ -585,23 +586,45 @@ def complicated_simulation(games, numturns, players): #still takes in 3 argument
                 player.wins += 1 #their win count increases by 1
         
         games_completed += 1
+
+        for player in players:
+            player.completed.append(player.monies)
+            
         if games_completed%100 == 0:
             print("game",games_completed, "finished")
 
+        
+    
     #at the end of all the games      
     for player in players: #cycle through all the players
         print('player:', player.number, 'wins', player.wins, 'turns:',player.turns) #print their number and how many games they won
 
     return properties_list, players
 
-player = Player(1, 70, [], [])
-player2 = Player(2, 50, [], [])
-player3 = Player(3, 30, [], [])
-player4 = Player(4, 20, [], [])
+player = Player(1, 70, [], [], [])
+player2 = Player(2, 50, [], [], [])
+player3 = Player(3, 30, [], [], [])
+player4 = Player(4, 20, [], [], [])
 players = [player, player2, player3, player4]
                        
+def calc_monies(numturns):
+    simulation = complicated_simulation(1, numturns, players)
+    monies = simulation[1]
+    n = np.arange(numturns)
+    lines = []
+    for player in monies:
+        lines += mpl.plot(n, player.monies,  label='Player {}, Risky {}%'.format(player.number, player.risky*100))
+    labels = [l.get_label() for l in lines]
+    mpl.legend(lines, labels)
 
 
-mpl.tight_layout()
-mpl.show()
+
+#calc_monies(100)
+
+
+
+
+
+#mpl.tight_layout()
+#mpl.show()
 
