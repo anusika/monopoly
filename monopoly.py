@@ -1,8 +1,7 @@
-import time
 import numpy as np
 import random as rd
 import matplotlib.pyplot as mpl
-import math
+
 
 
 
@@ -39,7 +38,7 @@ class Property(object):
         self.buy = buy
         self.rent = rent
         self.hits = hits
-        self.owned = False
+        self.owned = owned
         
     def __str__(self):
         return "Name: {} || Location: {} || Colour: {} || Buy: {} || Rent: {}".format(self.name,
@@ -174,6 +173,10 @@ def simple_simulation(numgames, numturns, jail):
             if isinstance(roll, str):
                 #print('going to jail')
                 player.position = 10
+                if jail:
+                    player.jail = True
+                    jail_time += 1
+                    #print('player sent to jail')
                 
             else:
                 player.position = (player.position + roll)%40
@@ -181,7 +184,11 @@ def simple_simulation(numgames, numturns, jail):
                 if player.position == 30:
                     #print('going to jail')
                     player.position = 10
-
+                    if jail:
+                        player.jail = True
+                        jail_time += 1
+                        #print('player sent to jail')
+        
 
                 elif player.position in [2, 17, 33]:
                     chest_played = current_chest.pop(0)
@@ -190,7 +197,14 @@ def simple_simulation(numgames, numturns, jail):
                         rd.shuffle(current_chest)
                     #print(chest_played)
 
-                    if isinstance(chest_played, int):
+                    if chest_played == 10:
+                        player.postion = 10
+                        if jail:
+                            player.jail = True
+                            jail_time += 1
+
+
+                    elif isinstance(chest_played, int):
                         player.position = chest_played
                         
                 elif player.position in [7, 22, 36]:
@@ -199,6 +213,13 @@ def simple_simulation(numgames, numturns, jail):
                         current_chance = [i for i in chance_options]
                         rd.shuffle(current_chance)
                     #print(chance_played)
+
+                    if chance_played == 10:
+                        player.postion = 10
+                        if jail:
+                            player.jail = True
+                            jail_time += 1
+                            #print('player sent to jail')
 
                     if isinstance(chance_played, int):
                         player.position = chance_played
@@ -222,20 +243,17 @@ def simple_simulation(numgames, numturns, jail):
                         pass
 
             properties_list[player.position].hits += 1
-            print("Turn:", turns, "Name:", properties_list[player.position].name, "times hit:", properties_list[player.position].hits)
+            #print("Turn:", turns, "Name:", properties_list[player.position].name, "times hit:", properties_list[player.position].hits)
 
             
-            if player.position == 10 and jail:
-                player.jail = True
-                jail_time += 1
-                #print("player is in jail")
+
             player.turns += 1
                 #print("player:", player.number, "money left:", player.money)
                 
             if player.turns-1 != turns:
                 print('error')
                 
-            print("player", player.number, "turns", player.turns)
+            #print("player", player.number, "turns", player.turns)
 
                 
             turns += 1
@@ -656,7 +674,7 @@ def calc_monies(numturns):
         mpl.plot(n, player.monies)
 
 
-calc_monies(100)
+#calc_monies(100)
 
 mpl.show()
 
