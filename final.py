@@ -1,6 +1,7 @@
 import numpy as np #used to generate lists for matplotlib axis labeling
 import random as rd #used to generate random numbers for dice rolling and player's chance of buying property
 import matplotlib.pyplot as mpl #used to generate graphs from data
+from statistics import mean #used to average out list of lists when analyzing how much money player has made in a game
 
 #set up Player class and various attributes
 class Player(object):
@@ -18,10 +19,10 @@ class Player(object):
         self.wins = wins #for complex simulation, tracks how many games player has won
         self.monies = monies #for complex simulation, will be a list of lists, each list is one game's worth of tracking player's amount of money
         self.turns = turns #for complex simulation and debugging, tracks how many turns player has taken
-        self.completed = completed
+        self.completed = completed #for complex simulation, will be a list of lists that contains all the player.monies lists generated in multiple games
     def want(self, location): #for complex simulation, see if player wants to buy this location
         testing = rd.random() #some random number between 0 and 1
-        if player.money < location.buy: #if the player has less money than the price of the location i.e they cannot afford the location
+        if self.money < location.buy: #if the player has less money than the price of the location i.e they cannot afford the location
             return False #they do not want to buy it
         elif testing <= self.risky: #if the random number is less than the risk factor of the player
             return True # they want to buy the property ex) if a player is 70% (they will buy 70% of properties) if the random number is less than 0.7 they want to buy it
@@ -131,7 +132,7 @@ def simple_simulation(numgames, numturns, jail): #takes in three arguments, the 
     games_completed = 0 #set inital amount of games completed to 0
     while games_completed < numgames: #while the amount of games completed is less than the amount of games asked for
 
-        player = Player(1, 0, 'null', 'null') #create a new player, the player does not need any of the attributes set for complex simulations
+        player = Player(1, 0, 'null', 'null', 'null') #create a new player, the player does not need any of the attributes set for complex simulations
                                             #the only used attributes will be player.position, player.turns, player.jail, player.jail_time
 
         #creating all the options for community chest cards, numbers are locations that the player can be sent to, becuase this is a simple simulation
@@ -316,6 +317,34 @@ def compare_hits_time(games, numturns): #takes in two arguments, how many games 
     ax.set_xlabel('Spaces on Monopoly Board', labelpad=50) #label x-axis and move the label down
     ax.legend((bars_hits[0], bars_turns[0]), ('Chance of Hit Percentage', 'Turns Spent Percentage')) #create a legend for the two different bar types
 
+def calc_colours(games, numturns):
+    simulation = simple_simulation(games, numturns, jail=True)
+    seen = set()
+    unique = [obj.colour for obj in simulation if obj.colour not in seen and not seen.add(obj.colour)]
+    colouring = []
+    for colour in unique:
+        colouring.append(0)
+    for properties in simulation:
+        position = unique.index(properties.colour)
+        colouring[position] += properties.hits
+    colouring = [colour/(games*numturns)*100 for colour in colouring]
+    numbers = np.arange(len(unique))
+    printing_colours = ['#cdc9c9', 'brown', '#cdc9c9', '#cdc9c9', '#cdc9c9', '#add8e6', 'pink', '#cdc9c9', 'orange', 'red', 'yellow', 'green', 'blue']
+    fig, ax = mpl.subplots()
+    bars = ax.bar(numbers, colouring, color = printing_colours) 
+    ax.set_xticks(numbers)
+    ax.set_xticklabels(unique)
+    ax.set_ylabel('Percentage')
+    ax.set_title(' Percentage Chance of Hitting Each Colour ({} Games at {} Turns/Game)'.format(games, numturns))
+    ax.set_xlabel('Colours on Monopoly Board', labelpad=50)
+    bars = ax.patches
+    label_bars(bars)
+    
+
+calc_colours(10000, 100)
+mpl.tight_layout()
+mpl.show()    
+
 #time for the complex simulation
 #the main differences are that this one includes multiple players and the exchange of money
 #however, it lacks adding houses and hotels, a goal I have made for my next assigments
@@ -352,6 +381,11 @@ def complicated_simulation(games, numturns, players): #still takes in 3 argument
         rd.shuffle(current_chance)
 
         completed_turns = 0
+
+        for player in players: #like clearing the properties_list in the simple situtation I have to clear the player attributes as well
+            player.monies = [] #creating a clean list to track player's money change for new game
+            player.locations = [] #reset how many properties player has
+            player.money = 1500 #reset amount of money player has at beginning of game
         
         while completed_turns < numturns:
             
@@ -491,13 +525,13 @@ def complicated_simulation(games, numturns, players): #still takes in 3 argument
                         else:
                             pass
 
+
                 #becuase I'll be using the term 'properties_list[player.position]' a lot I just assigned it to a variable
                 current = properties_list[player.position]
                 current.hits += 1 #increase the amount of hits on this spot by 1
 
                 #this section involves buying property           
                 if current.owned == False and current.buy != 'null': #if the spot in not currently owned and it does not have 'null' as it's price
-            
                     if player.want(properties_list[player.position]): #see if the player wants the property
                         player.money -= current.buy #subtract the cost of the property from player.money
                         current.owned = True #change the status of the property to owned
@@ -588,7 +622,7 @@ def complicated_simulation(games, numturns, players): #still takes in 3 argument
         games_completed += 1
 
         for player in players:
-            player.completed.append(player.monies)
+            player.completed.append(player.monies) #add list of tracking money to master list that contains all games worth of tracking 
             
         if games_completed%100 == 0:
             print("game",games_completed, "finished")
@@ -601,30 +635,55 @@ def complicated_simulation(games, numturns, players): #still takes in 3 argument
 
     return properties_list, players
 
-player = Player(1, 70, [], [], [])
+player1 = Player(1, 70, [], [], [])
 player2 = Player(2, 50, [], [], [])
-player3 = Player(3, 30, [], [], [])
+player3 = Player(3, 100, [], [], [])
 player4 = Player(4, 20, [], [], [])
-players = [player, player2, player3, player4]
-                       
-def calc_monies(numturns):
-    simulation = complicated_simulation(1, numturns, players)
-    monies = simulation[1]
+player5 = Player(5, 50, [], [], [])
+players = [player1, player2, player3, player4]
+                     
+def calc_monies(games, numturns, list_of_players):
+    simulation = complicated_simulation(games, numturns, list_of_players)
+    playered = simulation[1]
     n = np.arange(numturns)
     lines = []
-    for player in monies:
-        lines += mpl.plot(n, player.monies,  label='Player {}, Risky {}%'.format(player.number, player.risky*100))
-    labels = [l.get_label() for l in lines]
-    mpl.legend(lines, labels)
+    average = []
+    for player in playered:
+        averaged = [float(sum(col))/len(col) for col in zip(*player.completed)]
+        average.append(averaged)
+    for player in playered:
+        mpl.plot(n,average[player.number-1], label = 'Player {} Risky: {}'.format(player.number, player.risky*100))
+    mpl.legend()
+
+def compare_win(games, numturns, list_of_players):
+    simulation = complicated_simulation(games, numturns, list_of_players)
+    wins = [player.wins for player in simulation[1]]
+    players = ['Player {}'.format(player.number) for player in simulation[1]]
+    number = np.arange(len(players))
+    fig, ax = mpl.subplots() #start a plot for the data
+    bars = ax.bar(number, wins, color = 'y') 
+    ax.set_ylabel('Amount of Games Won') #label y-axis
+    ax.set_title('Affect of turn order ({} Games at {} Turns/Game with {} Players, Each Having Same Risk Factor)'.format(games, numturns, len(players))) #set title of graph formating the title with amount of games and turns
+    ax.set_xticks(number) #make a vertical line at each x value
+    ax.set_xticklabels(players) 
+    ax.set_xlabel('Player', labelpad=50) #label x-axis and move the label down
+    bars = ax.patches #basically convert each bar into a rectangular shape to label
+    label_bars(bars) #using the label_bars function label each bar
+
+def compare_win_risky(games, numturns, list_of_players):
+    simulation = complicated_simulation(games, numturns, list_of_players)
+    wins = [player.wins for player in simulation[1]]
+    players = ['Player {} Risky {}'.format(player.number, player.risky*100) for player in simulation[1]]
+    number = np.arange(len(players))
+    fig, ax = mpl.subplots() #start a plot for the data
+    bars = ax.bar(number, wins, color = 'y') 
+    ax.set_ylabel('Amount of Games Won') #label y-axis
+    ax.set_title('Affect of turn order ({} Games at {} Turns/Game with {} Players, Each Having Different Risk Factor)'.format(games, numturns, len(players))) #set title of graph formating the title with amount of games and turns
+    ax.set_xticks(number) #make a vertical line at each x value
+    ax.set_xticklabels(players) 
+    ax.set_xlabel('Player', labelpad=50) #label x-axis and move the label down
+    bars = ax.patches #basically convert each bar into a rectangular shape to label
+    label_bars(bars) #using the label_bars function label each bar
 
 
-
-#calc_monies(100)
-
-
-
-
-
-#mpl.tight_layout()
-#mpl.show()
 
