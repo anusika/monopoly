@@ -317,28 +317,29 @@ def compare_hits_time(games, numturns): #takes in two arguments, how many games 
     ax.set_xlabel('Spaces on Monopoly Board', labelpad=50) #label x-axis and move the label down
     ax.legend((bars_hits[0], bars_turns[0]), ('Chance of Hit Percentage', 'Turns Spent Percentage')) #create a legend for the two different bar types
 
-def calc_colours(games, numturns):
-    simulation = simple_simulation(games, numturns, jail=True)
+#this function takes hit_percentage but sums the hit_percentage for each colour and then graphs the results
+def calc_colours(games, numturns): #takes in two arguments, how many games to run and how many turns per game
+    simulation = simple_simulation(games, numturns, jail=True) #run a simulaiton with jail active
     seen = set()
-    unique = [obj.colour for obj in simulation if obj.colour not in seen and not seen.add(obj.colour)]
-    colouring = []
-    for colour in unique:
-        colouring.append(0)
-    for properties in simulation:
-        position = unique.index(properties.colour)
-        colouring[position] += properties.hits
-    colouring = [colour/(games*numturns)*100 for colour in colouring]
-    numbers = np.arange(len(unique))
-    printing_colours = ['#cdc9c9', 'brown', '#cdc9c9', '#cdc9c9', '#cdc9c9', '#add8e6', 'pink', '#cdc9c9', 'orange', 'red', 'yellow', 'green', 'blue']
-    fig, ax = mpl.subplots()
-    bars = ax.bar(numbers, colouring, color = printing_colours) 
-    ax.set_xticks(numbers)
-    ax.set_xticklabels(unique)
-    ax.set_ylabel('Percentage')
-    ax.set_title(' Percentage Chance of Hitting Each Colour ({} Games at {} Turns/Game)'.format(games, numturns))
-    ax.set_xlabel('Colours on Monopoly Board', labelpad=50)
-    bars = ax.patches
-    label_bars(bars)
+    unique = [obj.colour for obj in simulation if obj.colour not in seen and not seen.add(obj.colour)] #creates a list with eah unique colour on the board
+    colouring = [] #empty list
+    for colour in unique: #for each colour in the list of unique colours
+        colouring.append(0) #add a zero to the empty list
+    for properties in simulation: #for each property in simulation
+        position = unique.index(properties.colour) #it's position in the colouring list is its colours position in the unique colours list
+        colouring[position] += properties.hits #add the amount of hits it has to the total hits for that colour
+    colouring = [colour/(games*numturns)*100 for colour in colouring] #turn each of the values for each colour into a percentage
+    numbers = np.arange(len(unique)) #the x-axis should be the length of the list of the different colours
+    printing_colours = ['#cdc9c9', 'brown', '#cdc9c9', '#cdc9c9', '#cdc9c9', '#add8e6', 'pink', '#cdc9c9', 'orange', 'red', 'yellow', 'green', 'blue'] #what colour each bar should be
+    fig, ax = mpl.subplots()#start a plot for the data
+    bars = ax.bar(numbers, colouring, color = printing_colours) #plots hit percentage for each colour vs the colour, with the colour of each bar set to its position in the printing_colours list
+    ax.set_xticks(numbers) #make a vertical line at each x value
+    ax.set_xticklabels(unique) #labels each bar with its colour
+    ax.set_ylabel('Percentage') #label y-axis
+    ax.set_title(' Percentage Chance of Hitting Each Colour ({} Games at {} Turns/Game)'.format(games, numturns))#set title of graph formating the title with amount of games and turns
+    ax.set_xlabel('Colours on Monopoly Board', labelpad=50) #label x-axis and move the label down
+    bars = ax.patches #basically convert each bar into a rectangular shape to label
+    label_bars(bars)#using the label_bars function label each bar
 
 #time for the complex simulation
 #the main differences are that this one includes multiple players and the exchange of money
@@ -635,65 +636,74 @@ def complicated_simulation(games, numturns, players): #still takes in 3 argument
     for player in players: #cycle through all the players
         print('player:', player.number, 'wins', player.wins) #print their number and how many games they won
 
-    return properties_list, players
+    return properties_list, players #returns the altered properties list and the list of players
 
-                     
-def calc_monies(games, numturns, list_of_players):
-    simulation = complicated_simulation(games, numturns, list_of_players)
-    playered = simulation[1]
-    n = np.arange(numturns)
-    lines = []
-    average = []
-    for player in playered:
-        averaged = [float(sum(col))/len(col) for col in zip(*player.completed)]
-        average.append(averaged)
-    for player in playered:
-        position = playered.index(player)
-        mpl.plot(n,average[position], label = 'Player {} Risky: {}%'.format(player.number, player.risky*100))
-    mpl.ylabel('Amount of Money')
-    mpl.xlabel('Amount of Turns')
-    mpl.title('Change in Amount of Money Averaged Over {} Games with {} Turns per Game'.format(games, numturns))
-    mpl.legend()
+#the following graphs are made using results from the complex simulation
 
-def compare_win(games, numturns, list_of_players):
-    simulation = complicated_simulation(games, numturns, list_of_players)
-    wins = [player.wins/games*100 for player in simulation[1]]
-    players = ['Player {}'.format(player.number) for player in simulation[1]]
-    number = np.arange(len(players))
+#this function graphs the amount of money (on average) a player has at each turn
+def calc_monies(games, numturns, list_of_players): #takes in three arguments: amount of games, amount of turns, and list of players
+    simulation = complicated_simulation(games, numturns, list_of_players) #runs complicated_simulation based on specifications
+    playered = simulation[1] #takes the list of players 
+    n = np.arange(numturns) #the x-axis should be the length of the amount of turns
+    average = [] #empty list that will be filled with averages for each player
+    for player in playered: #for player in list of players
+        averaged = [float(sum(col))/len(col) for col in zip(*player.completed)] #take the list of lists that contains the amount of money per turn for each game, average out the amount
+                                                                                #of money/turn and create a final averaged list
+        average.append(averaged) #add player average list to list of averages
+    for player in playered: #for player in list of players
+        position = playered.index(player) #the position in the list of averages is the player's postition in the list of players
+        mpl.plot(n,average[position], label = 'Player {} Risky: {}%'.format(player.number, player.risky*100)) #plot a line based on the average amount of money that player has at a turn
+    mpl.ylabel('Amount of Money') #label y-axis
+    mpl.xlabel('Amount of Turns')#label x-axis 
+    mpl.title('Change in Amount of Money Averaged Over {} Games with {} Turns per Game'.format(games, numturns)) #set title of graph and format it with amount of games and turns/game
+    mpl.legend() #add legend to graph
+
+#this function compares the win percentage for players with the same risky factor
+def compare_win(games, numturns, list_of_players): #takes in three arguments: amount of games, amount of turns, and list of players
+    simulation = complicated_simulation(games, numturns, list_of_players) #runs complicated_simulation based on specifications
+    wins = [player.wins/games*100 for player in simulation[1]] #turns wins into percentages
+    players = ['Player {}'.format(player.number) for player in simulation[1]] #creates labels for the bars by creating a list of strings of the number of each player
+    number = np.arange(len(players)) #the x-axis should be the length of the list of players
     fig, ax = mpl.subplots() #start a plot for the data
-    bars = ax.bar(number, wins, color = 'y') 
+    bars = ax.bar(number, wins, color = 'y') #create yellow bars for graph 
     ax.set_ylabel('Win Game Percentage') #label y-axis
     ax.set_title('Affect of Turn Order ({} Games at {} Turns/Game with {} Players, Each Having Same Risk Factor)'.format(games, numturns, len(players)), y = 1.08) #set title of graph formating the title with amount of games and turns
     ax.set_xticks(number) #make a vertical line at each x value
-    ax.set_xticklabels(players) 
+    ax.set_xticklabels(players) #label each bar with the player number
     ax.set_xlabel('Player', labelpad=50) #label x-axis and move the label down
     bars = ax.patches #basically convert each bar into a rectangular shape to label
     label_bars(bars) #using the label_bars function label each bar
 
-def compare_win_risky(games, numturns, list_of_players):
-    simulation = complicated_simulation(games, numturns, list_of_players)
-    wins = [player.wins/games*100 for player in simulation[1]]
-    players = ['Risk Factor: {}'.format(player.risky*100) for player in simulation[1]]
-    number = np.arange(len(players))
+#this function compares the win percentage for players with the different risky factor
+def compare_win_risky(games, numturns, list_of_players): #takes in three arguments: amount of games, amount of turns, and list of players
+    simulation = complicated_simulation(games, numturns, list_of_players) #runs complicated_simulation based on specifications
+    wins = [player.wins/games*100 for player in simulation[1]] #turns wins into percentages
+    players = ['Risk Factor: {}'.format(player.risky*100) for player in simulation[1]] #creates labels for the bars by creating a list of strings of the risk factor of each player
+    number = np.arange(len(players)) #the x-axis should be the length of the list of players
     fig, ax = mpl.subplots() #start a plot for the data
-    bars = ax.bar(number, wins, color = 'y') 
+    bars = ax.bar(number, wins, color = 'y') #create yellow bars for graph 
     ax.set_ylabel('Percentage of Games Won') #label y-axis
     ax.set_title('Affect of turn order ({} Games at {} Turns/Game with {} Players, Each Having Different Risk Factor)'.format(games, numturns, len(players)), y = 1.08) #set title of graph formating the title with amount of games and turns
     ax.set_xticks(number) #make a vertical line at each x value
-    ax.set_xticklabels(players) 
+    ax.set_xticklabels(players) #label each bar with player riskyness
     ax.set_xlabel('Player', labelpad=50) #label x-axis and move the label down
     bars = ax.patches #basically convert each bar into a rectangular shape to label
     label_bars(bars) #using the label_bars function label each bar
 
-
+#creating players with same risk factor
 player1 = Player(1, 50, [], [], [])
-player2 = Player(2, 70, [], [], [])
-player3 = Player(3, 100, [], [], [])
-player4 = Player(4, 20, [], [], [])
-players = [player1, player2, player3, player4]
-compare_win_risky(5000, 30, players)
-#calc_monies(1, 30, players)
-#calc_colours(50000, 30)
-#calc_colours(20000, 30)
+player2 = Player(2, 50, [], [], [])
+player3 = Player(3, 50, [], [], [])
+player4 = Player(4, 50, [], [], [])
+players_same = [player1, player2, player3, player4]
+
+#creating players with different risk factors
+player1risky = Player(1, 50, [], [], [])
+player2risky = Player(2, 70, [], [], [])
+player3risky = Player(3, 100, [], [], [])
+player4risky = Player(4, 20, [], [], [])
+players_risky = [player1risky, player2risky, player3risky, player4risky]
+
+#these two lines are for displaying the graphs
 mpl.tight_layout()
 mpl.show() 
