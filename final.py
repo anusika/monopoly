@@ -610,8 +610,10 @@ def complicated_simulation(games, numturns, players): #still takes in 3 argument
                 
             completed_turns += 1 # all players have completed one more turn
 
-        totals = [] #will store each player's total score    
+        totals = [] #will store each player's total score
+        
         for player in players: #cycle through all players
+            player.completed.append(player.monies) #add list of money collected during game to master list
             for location in player.locations:#for every one of their locations
                 if isinstance(location.rent, int): #if the rent is a integer
                     player.total += location.rent #add the rent of the property to the total
@@ -646,12 +648,13 @@ def calc_monies(games, numturns, list_of_players): #takes in three arguments: am
     playered = simulation[1] #takes the list of players 
     n = np.arange(numturns) #the x-axis should be the length of the amount of turns
     average = [] #empty list that will be filled with averages for each player
+   
     for player in playered: #for player in list of players
         averaged = [float(sum(col))/len(col) for col in zip(*player.completed)] #take the list of lists that contains the amount of money per turn for each game, average out the amount
                                                                                 #of money/turn and create a final averaged list
         average.append(averaged) #add player average list to list of averages
     for player in playered: #for player in list of players
-        position = playered.index(player) #the position in the list of averages is the player's postition in the list of players
+        position = playered.index(player)
         mpl.plot(n,average[position], label = 'Player {} Risky: {}%'.format(player.number, player.risky*100)) #plot a line based on the average amount of money that player has at a turn
     mpl.ylabel('Amount of Money') #label y-axis
     mpl.xlabel('Amount of Turns')#label x-axis 
@@ -703,6 +706,18 @@ player2risky = Player(2, 70, [], [], [])
 player3risky = Player(3, 100, [], [], [])
 player4risky = Player(4, 20, [], [], [])
 players_risky = [player1risky, player2risky, player3risky, player4risky]
+
+#the following lines are if you want to test my functions
+#they run much smaller batchs of games compared to the ones I used for my data so the results won't prefectly match up
+#if you want to use them uncomment one at a time and then run the function
+#if you run multiple at the same time, the graphs will overlay
+#if the graph does not fit well on the screen, the button to the right of the zoom in button will allow you to resize the graph (it is called configure subplots, the icon is 3 sliders)
+
+#compare_hits_time(100, 30)
+#calc_colours(100, 30)
+#calc_monies(10000, 100, players_risky)
+#compare_win(100, 30, players_same)
+#compare_win_risky(100, 30, players_risky)
 
 #these two lines are for displaying the graphs
 mpl.tight_layout()
